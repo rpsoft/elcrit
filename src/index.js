@@ -78,25 +78,35 @@ async function main(){
         //  console.log(ids[p]["productId"]);
           try {
             //var apiData = await amsc.getDataForProduct(ids[p]["productId"]);
-            var dataDate = await amsc.getLowestUsedPriceData(ids[p]["productId"]);
+            var dataDate = await amsc.getProductReviewDates(ids[p]["productId"]);
             //console.log(JSON.stringify(dataDate));
-            var outLine = ids[p]["productId"]+
-                      ","+dataDate["cheapestUsed"]+
-                      ","+dataDate["cheapestCondition1"]+
-                      ","+dataDate["cheapestCondition2"]+
-                      ","+dataDate["sellerStarRating"]+
-                      ","+dataDate["percentPositive"];
-            console.log(outLine + " "+p+"/"+ids.length);
+            // var outLine = ids[p]["productId"]+
+            //           ","+dataDate["cheapestUsed"]+
+            //           ","+dataDate["cheapestCondition1"]+
+            //           ","+dataDate["cheapestCondition2"]+
+            //           ","+dataDate["sellerStarRating"]+
+            //           ","+dataDate["percentPositive"];
+            // console.log(outLine + " "+p+"/"+ids.length);
+            //
+            // fs.appendFile('dataoutoutuk.txt', outLine+"\n", function (err) {
+            //   if (err) {
+            //     console.log("Error writting: "+outLine)
+            //   }
+            // })
 
-            fs.appendFile('dataoutoutuk.txt', outLine+"\n", function (err) {
+
+
+            var dates = ids[p]["productId"]+","+dataDate["latestReviewDate"].replace(",","")+","+dataDate["firstReviewDate"].replace(",","")+","+dataDate["numberRaters"].replace(",","")
+            console.log(dates+ " "+p+"/"+ids.length);
+
+            fs.appendFile('datauk_dates_raters.csv', dates+"\n", function (err) {
               if (err) {
                 console.log("Error writting: "+outLine)
               }
             })
 
-            //console.log(ids[p]+","+dataDate["latestReviewDate"].replace(",","")+","+dataDate["firstReviewDate"].replace(",",""));
             //allProducts.push(apiData);
-            console.log("APIDATA "+JSON.stringify(dataDate));
+            // console.log("APIDATA "+JSON.stringify(dataDate));
           } catch (e) {
             console.log(e);
             console.log("OH WELL KEEP GOING!");

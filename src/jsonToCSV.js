@@ -1,5 +1,34 @@
 var data = require('../dvdplayers_uk.json');
 
+var lines = require('fs').readFileSync("../dataoutoutuk_saved.txt", 'utf-8')
+    .split('\n')
+    .filter(Boolean);
+
+var lines2 = require('fs').readFileSync("../datauk_dates_raters.csv", 'utf-8')
+    .split('\n')
+    .filter(Boolean);
+
+
+
+
+var additionalData = {}
+
+var otherAdditionalData = {}
+
+for ( l in lines ){
+  var itemcode = lines[l].split(",")[0]
+  additionalData[itemcode] = lines[l]
+}
+
+for ( l in lines2 ){
+  var itemcode = lines2[l].split(",")[0]
+  otherAdditionalData[itemcode] = lines2[l]
+}
+
+
+
+
+
 String.prototype.replaceAll = function(target, replacement) {
   return this.split(target).join(replacement);
 };
@@ -55,13 +84,14 @@ var iAttsNames = ["Binding","Brand","Color","Feature","Label","ListPrice","Manuf
 var oSumNames = ["LowestNewPrice",  "TotalNew",  "TotalUsed",  "TotalCollectible",  "TotalRefurbished"]
 var osNames = ["TotalOffers","TotalOfferPages","MoreOffersUrl","Offer"]
 
-console.log("ASIN,"+iAttsNames.join(",")+","+oSumNames.join(",")+","+osNames.join(",")+"s_number,min_condition,min_price,max_condition,max_price")
+console.log("ASIN,cheapestUsed,cheapestCondition1,cheapestCondition2,sellerStarRating,percentPositive,ASIN,earliestReviewDate,latestReviewDate,ratersNumber,ASIN,SalesRank,"+iAttsNames.join(",")+","+oSumNames.join(",")+","+osNames.join(",")+"s_number,min_condition,min_price,max_condition,max_price")
 
 for ( var i = 0; i < data.length; i++ ){
   var itemLine = ""
   var item = data[i][0];
 
   itemLine = itemLine + item.ASIN[0]+","
+  itemLine = itemLine + item["SalesRank"]+","
 
   var iAtts = item.ItemAttributes[0]
   var oSum = item.OfferSummary[0]
@@ -73,8 +103,7 @@ for ( var i = 0; i < data.length; i++ ){
 
   var o = item.Offers[0].Offer
 
-///  itemLine = itemLine + JSON.stringify(o ? o[0] : "")  +","
-  // itemLine = itemLine + item.ItemAttributes[0].Model  +","
 
-  console.log(itemLine)
+
+  console.log(additionalData[item.ASIN[0]] + ','+ otherAdditionalData[item.ASIN[0]] + "," + itemLine)
 }

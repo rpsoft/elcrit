@@ -113,7 +113,7 @@ exports.getProductReviewDates =  async function (productID){
       try{
 
         http("https://www.amazon."+domain+"/product-reviews/"+productID+"?sortBy=recent", async function(error, resp, body){
-
+          //console.log("https://www.amazon."+domain+"/product-reviews/"+productID+"?sortBy=recent")
           var $;
 
           if ( resp && 'request' in resp ) {
@@ -125,21 +125,26 @@ exports.getProductReviewDates =  async function (productID){
           //  console.log("maxPage: "+maxPage);
 
 
-            var latestReviewDate = $(".a-section .review").first().children(":nth-child(2)").find(".review-date").text();
+            var latestReviewDate = $(".review-date").first().text();
+
+            //console.log(latestReviewDate)
+
+            var numberRaters = $(".totalReviewCount").first().text();
+
 
             var firstReview;
             if (maxPage){
               pausecomp(1000);
               firstReview = await getProductEarliestReviewDate(productID,maxPage);
             } else {
-              firstReview = $(".a-section .review").last().children(":nth-child(2)").find(".review-date").text();
+              firstReview = $(".review-date").last().text();
             }
 
           //  console.log(latestReviewDate + " --- "+ firstReview);
             latestReviewDate = latestReviewDate.replace("on ","" );
             firstReview = firstReview.replace("on ","" );
 
-            var toReturn = {"latestReviewDate":latestReviewDate, "firstReviewDate":firstReview};
+            var toReturn = {"latestReviewDate":latestReviewDate, "firstReviewDate":firstReview, "numberRaters": numberRaters};
             //console("esto return: "+toReturn);
             Resolve(toReturn);
           } else {
@@ -167,7 +172,7 @@ async function getProductEarliestReviewDate(productID,maxPage){
 
             $ = cheerio.load(body);
 
-            var firstReview = $(".a-section .review").last().children(":nth-child(2)").find(".review-date").text();
+            var firstReview = $(".review-date").last().text();
             //console.log("Earliest review: "+ firstReview);
 
             Resolve(firstReview);
