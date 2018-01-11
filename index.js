@@ -1,113 +1,123 @@
 var express = require('express');
 var app = express();
-var path = require("path");
+// var path = require("path");
 var html = require("html");
+var request = require("request");
+var cheerio = require('cheerio');
 
-var sync = require('synchronize');
-
-var Promise = require('es6-promise').Promise;
-
-var amazon = require('amazon-product-api');
-
-var amsc = require("./amazonScrapper.js");
-
-var prevData = require("./data.js");
+// var prevData = require("./data.js");
 
 app.use(express.static(__dirname + '/domainParserviews'));
-
 app.use(express.static(__dirname + '/views'));
-
 app.engine('.html', require('ejs').renderFile);
-
-var fs = require('fs');
 
 app.get('/');
 
 var allProducts = [];
 
-function pausecomp(millis) // The ultimate stop for a few millis script.
-{
-  millis = millis + 2000 * Math.random();
-  var date = new Date();
-  var curDate = null;
+var seedURL = "http://ec2-52-89-34-225.us-west-2.compute.amazonaws.com/classify.aspx"
 
-  do {
-    curDate = new Date();
-  } while (curDate - date < millis);
-}
+var result = ""
 
 async function main() {
-
-  // var data = await amsc.getProductIDS("https://www.amazon.co.uk/s/ref=nb_sb_noss_1?url=search-alias%3Daps&field-keywords=dvd+players");
-  //
-  // allProducts = allProducts.concat(data["pids"]);
-  // console.log(data["pids"]);
-  //
-  //
-  // while ( data.nextUrl != undefined){
-  //     pausecomp(1500);
-  //     console.log("wait so it is not suspicious");
-  //     data = await amsc.getProductIDS("https://www.amazon.co.uk"+data.nextUrl);
-  //     allProducts = allProducts.concat(data.pids);
-  //     console.log("docs: "+allProducts.length);
-  //     console.log("docs: "+data.nextUrl);
-  // }
-  //
-  // for ( var p in allProducts){
-  //     pausecomp(1000);
-  //     console.log(allProducts[p].productId);
-  //     var apiData = await amsc.getDataForProduct(allProducts[p].productId);
-  //     allProducts[p]["amazonData"] = apiData;
-  //     //console.log(JSON.stringify(apiData));
-  // }
-
-
   try {
-    //  var ids = ["B004VXT666","B0082O29D2","B000N17ZHC","B000MRJ4KS","B00004TIZW","B00XTBKYVM","B0002V23ZW","B000CMGUV4","B002BEIYGA","B00006ANXL","B000ARFPFS","B00005AK8U","B0054MO4R4","B00006RVH6","B00015GYT0","B00FEJ4M1K","B0000B12QO","B00QPFJ7G2","B000UJYQ2O","B007PP21DC","B00019FO24","B000I202FI","B000GKTXIE","B0000U5GMM","B000FCSWRQ","B00005B98H","B000GEA3RA","B00L4H0706","B001CS0QP8","B00YQD3ZU4","B00005ML6Q","B000H10W7I","B00005T3YI","B0015IJE7G","B00021O4V8","B000K1TKOQ","B00XWNA7FA"];
-    var ids = ["B001AO4LBE", "B001CS0QP8", "B001GMTIT0", "B003ZR4ZDS", "B003AM8EOE", "B00133NV04", "B008HT8FU8", "B004PL4IK8", "B00A9IXHIA", "B007WRPCNO", "B0023ALNFG", "B0019JLG36", "B005AWCOWK", "B00C6ZBKX8", "B000REWYNK", "B00656GEV2", "B0087FRRME", "B005QWDBI0", "B00F8J42X4", "B003AX27AA", "B00IK4TZOK", "B004HCI1LW", "B004X63CXE", "B00FW2W38I", "B0033BW4ES", "B00B83LU70", "B009YAGNXU", "B009MQEU1I", "B00FEJ4M1K", "B004I1KVYC", "B00AGAONZ2", "B003SB6RLE", "B004AMHA0C", "B000YZLBHM", "B00519RBMA", "B00534AU80", "B00361JJ2K", "B008VE3CHA", "B007BGF0PG", "B00TMCF34K", "B002WJY42C", "B00HYNLLEA", "B00MRDZ936", "B00DCEOQ5Q", "B003ANS2YK", "B003AJ7OE8", "B007SXDH98", "B005CBA12E", "B005F5RGBG", "B004GFAFF0", "B003AVMZ7C", "B009D1D5FO", "B0028FZPOG", "B004MF34S4", "B00579OCCG", "B0038KNNJY", "B009CK9H6W", "B0038KTYAQ", "B000F4FA0G", "B00BG5BT1C", "B00004U3BV", "B00KQ6A85U", "B00JXXXOS0", "B0035CPEVU", "B00CZCKPJW", "B00AZENWTM", "B003AJ7ODY", "B01AQAS3KW", "B00BJ5PIFW", "B0009PUVFK", "B0065907GC", "B00I6HZ3OC", "B004PJLNYE", "B004LNL6V4", "B00FXCC508", "B00CMF5G6E", "B009B56OXW", "B00250EGBC", "B001QWVHU8", "B003Y814M8", "B009W6SA3W", "B00X6D1DMC", "B00EPPTTIU", "B00IH1E7Z8", "B00BUL4NM4", "B00YUJV12S", "B0106GV330", "B002SV04HS", "B007BGF196", "B00A3C2EMW", "B00YQD3ZU4", "B002WHFMN4", "B00FP2Z4OU", "B006N70DOM", "B002BZZY4Y", "B00CUEEP5U", "B002SDCQJK", "B00P6N9KE8", "B004N2IJ0O", "B00HBVY93U", "B004190R1S", "B003VX56MK", "B00L1CZZ3I", "B014OMTLOA", "B00K2B5BK6", "B007ERVCF4", "B0044A37B6", "B004NWDPB2", "B00GWAO1IY", "B00CSV72UK", "B00REORJJK", "B0039XU7B2", "B004TW62QG", "B0053H6JOQ", "B000E81FPM", "B00EF7ZCWK", "B003B4YH38", "B00ESDJ592", "B00OV7TGE4", "B00KGPQQW0", "B007R5XEFY", "B0038JECKE", "B0016G1ABA", "B002WJCQ4U", "B00JXMFR90", "B00858CZF2", "B007D5LY6O", "B0080H77PQ", "B00OBL5OM8", "B00JFDXIKM", "B00NH4NY1S", "B00C86PKT0", "B001CF60R4", "B005I5LNH6", "B0053GUXBC", "B0087FQPP4", "B004612IWM", "B008MWLHY6", "B00JE6UIUS", "B002ISQAFQ", "B002N4G7QW", "B00EOV3H4C", "B007S71NZO", "B00L2JX4DS", "B00KLE0E88", "B00C8SHXKW", "B006KGNUZA", "B008PB8Z7G", "B00J3VHT3S", "B00JJTGK98", "B00B8TOFSU", "B00KQ5LERM", "B00WRCY08M", "B000QC94WW", "B004CYWVAM", "B00DCFZ5P0", "B0145QN4F2", "B00A71YOQI", "B008PB8XN2", "B0111AVIJO", "B008MWLHX2", "B003EX0BVS", "B003E4M4WQ", "B009RUU4HI", "B00SNN6N8O", "B00THLNVY0", "B005MCX4CW", "B00FW7ATEI", "B002PU9Z9U", "B00FFJ3QUC", "B008RAZ8DE", "B00TAD0IKA", "B00YQ4D15M", "B004SBHSZ2", "B007KQE1UC", "B00KRM1X3Y", "B004QIPKNY", "B00KC0HVTQ", "B007F9XHAY", "B015PK4IAW", "B00KJ10E60", "B00BG2KWTK", "B007F9XHBI", "B00KM4SDPI", "B00P1IE8WM", "B009BZW8PK", "B00EXR6N84", "B00F4H95T6", "B014NG27BG", "B00J8WW6XA", "B00OAKXTPY", "B00ODIZ3H0", "B00E2TYXGC", "B007LNTPS2", "B00GO8Q632", "B004VXT666", "B0082O29D2", "B0054MO4R4", "B00F67DN38", "B00006I5N8", "B002W8S2YO", "B00E7A0S24", "B00115LAW0", "B0001P545A", "B0080QZ25Y", "B016YJYUZ6", "B00MU2OZQG", "B017EXLCTI", "B00OZ57MPW", "B00PB0K810", "B01BJ6VPVQ", "B01BJ6VELW", "B00G4REGJE", "B00UUDEHNI", "B00MX78V18", "B000I4FH8S", "B014TNDIMU", "B00449X3HA", "B00BN9CH1M", "B00P9GG5A4", "B00890H11Y", "B008VF6D6G", "B007ECGFLU", "B003JFKNG4", "B00C2LVYKK", "B00G6K7RKE", "B004QGXX5S", "B00PBBUJW2", "B00EN1BOE8", "B004QGXX62", "B00EN1BOE8", "B0041XIJX2", "B00P1B2MJU", "B00HBUV1E6", "B005HFHJVQ", "B009ZQ7KRG", "B009F2GD0A", "B00IU2Y3BM", "B003BL13WY", "B00AJVUCOY", "B007FGAWVO", "B00XTBKYVM", "B00XWNA7FA", "B00IIVUH3S", "B00E9G496M", "B00LMB75SG", "B00U1SWNF6", "B00GO71GQA", "B00KC5ET0K", "B00G1PR844", "B00IHHG2JQ", "B004BVVYCM", "B003WBZ7FM", "B00CMLITTE", "B007LNSF4C", "B0085H2O7M", "B006OR5IYQ", "B007XI1TAW", "B018UXEI1A", "B00TIRZKG0", "B00MY8NKZI", "B005WVLOPM", "B00KQVEMXE", "B0040EIQQC", "B00O4GJOQ2", "B00FSGUNEE", "B0089ZQ3OK", "B0017OHFPG", "B003Q0XA3K", "B00GXFIFN0", "B003XTYP38", "B00YHYXGZ6", "B00TOR5VCC", "B009XP191C", "B009PDJ5EK", "B00H4FKBFS", "B00SKA0PB6", "B00QJIJ3C8", "B0143J32I0", "B00MU2M266", "B008041AOS", "B00VGX0LE0", "B00VGX016I", "B00MX5N5CK"];
+    // http(seedURL, function (error, resp, body) {
+    //   var productIds = [];
+    //   var $;
+    //
+    //   if (resp && 'request' in resp) {
+    //
+    //     // $ = cheerio.load(body);
+    //      console.log(body);
+    //
+    //     //
+    //     //
+    //     // var toReturn = { "pids": productIds, "nextUrl": $("#pagnNextLink").attr("href") };
+    //
+    //     // Resolve(toReturn);
+    //   } else {
+    //     Reject("boom");
+    //   }
+    // });
+    console.log(encodeURI("UpdatePanel1|btnRun") )
 
-    ids = prevData.data;
+    var viewStateValue = ""
+    var viewStateGenerator = ""
+    var eventValidation = ""
 
-    for (var p in ids) {
-      pausecomp(2000);
-      //  console.log(ids[p]["productId"]);
-      try {
-        //var apiData = await amsc.getDataForProduct(ids[p]["productId"]);
-        var dataDate = await amsc.getProductReviewDates(ids[p]["productId"]);
-        //console.log(JSON.stringify(dataDate));
-        // var outLine = ids[p]["productId"]+
-        //           ","+dataDate["cheapestUsed"]+
-        //           ","+dataDate["cheapestCondition1"]+
-        //           ","+dataDate["cheapestCondition2"]+
-        //           ","+dataDate["sellerStarRating"]+
-        //           ","+dataDate["percentPositive"];
-        // console.log(outLine + " "+p+"/"+ids.length);
-        //
-        // fs.appendFile('dataoutoutuk.txt', outLine+"\n", function (err) {
-        //   if (err) {
-        //     console.log("Error writting: "+outLine)
-        //   }
-        // })
+    request.post({url:seedURL, form: {
+      ScriptManager1: encodeURI("UpdatePanel1|btnRun"),
+      // __EVENTTARGET:encodeURI(""),
+      // __EVENTARGUMENT:encodeURI(""),
+      __VIEWSTATE:encodeURI("WT8Jp6nsnI1375/OQNu6fXZGCvkiy1W9WA0LLeNmo8wGrbXU1DH8X9zuaQ2UKkZMMAzc7HrEFlkInb+OoR+FxM33ZFkDT4zhE7PUHP83L/hWm4DtlmBbRUW48foafHR9SHTdOCvMd9MJBqEtn5AqDU56kY8DWeuSIjbJgBCx7fRtA1KTt5/yxROGKxCkPVjoJKQpCgLzlogyg17nGdgRYA=="),
+      __VIEWSTATEGENERATOR:encodeURI("01FBFEE0"),
+      __EVENTVALIDATION:encodeURI("srFIejfZtRJd/IU3MUPfwkujytT+NBI2Hn0bmqo+bjBc5EifpJB/7NbgauUc8O4Yan9sP4BtrhlnOz38cUBqdv5c8AzwLeDtiVB1LB9DlQz06ArpxCKZBScMSn3Jfh2wYSEc6AKb3YBct6tjVJh3aA=="),
+      txtTID: encodeURI("NCT01923415;NCT00774852;NCT00035308"),
+        __ASYNCPOST:"true&",
+      btnRun:encodeURI("Search")}}, function(err,httpResponse,body){
+          var $;
+          console.log(httpResponse.body)
 
+          if ( httpResponse.body ){
+            $ = cheerio.load(body);
 
-        var dates = ids[p]["productId"] + "," + dataDate["latestReviewDate"].replace(",", "") + "," + dataDate["firstReviewDate"].replace(",", "") + "," + dataDate["numberRaters"].replace(",", "");
-        console.log(dates + " " + p + "/" + ids.length);
+            viewStateValue = $(body).find("#__VIEWSTATE")[0].attribs.value
+            viewStateGenerator = $(body).find("#__VIEWSTATEGENERATOR")[0].attribs.value
+            eventValidation = $(body).find("#__EVENTVALIDATION")[0].attribs.value
 
-        fs.appendFile('datauk_dates_raters.csv', dates + "\n", function (err) {
-          if (err) {
-            console.log("Error writting: " + outLine);
           }
-        });
 
-        //allProducts.push(apiData);
-        // console.log("APIDATA "+JSON.stringify(dataDate));
-      } catch (e) {
-        console.log(e);
-        console.log("OH WELL KEEP GOING!");
-      }
-    }
+          result = body
+       })
 
-    //console.log("ALL PRODS " +JSON.stringify(allProducts));
+       var viewStateValue = ""
+       var viewStateGenerator = ""
+       var eventValidation = ""
+
+
+       request.post({url:seedURL, form: {
+         ScriptManager1: encodeURI("UpdatePanel1|GVResults"),
+         __EVENTTARGET:encodeURI("GVResults"),
+         __EVENTARGUMENT:encodeURI("ShowNgrams$0"),
+         __VIEWSTATE:encodeURI("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"),
+         __VIEWSTATEGENERATOR:encodeURI("01FBFEE0"),
+         __EVENTVALIDATION:encodeURI("Lfriax/MESrAqh8+md08WYpZzf6Dv1SFNQUiuGY+7ZE0HJpHNeTd8XVpBBh8YrY1/L0kzY11GaP1VVtuKH0qHiFC6uWqwvR1BR32DeUnO1k1Xylqugu9xSrZvejb6/TrD7UTwTpBV1bo6gEXBS+9Eg6gZGLkVa2lpeHugYR+sKwOAnKpK5GcxnBfZO1k7SiLetJcScZIS6ro49hHNJQpN2BQNNrfH02dZLlDPAMNuGVQrumqFy/6Yu58mLXSsX1yflX3ir35NRrqKQqDRRs2WYI+iDDWYPMAY49QjxnaMAryazy134TsdSuMPveVGukmDDlMuCzD8BHZ8ac2pCP1oHR6Z4DG05RiPOd7o9iKr5JNMgM8jSgc1/AfqK4iuR/QJbYwWBtSN4wlmu0msJOEqlhk1MmkJhKbO3dFOr4w4IcxkrKY8zbqoMp4AijpVVDtfpgZ7EsIYSQo2isyizfCVjIptlK6O3ez6eePdgiKueUJ/ewu88C56eM5xlZ17ISrzOCFm/rcXy15B3NM37mUa5Z5G/MIWGdFHcpxUNIdJTZTxHBCmVOExKMzd9ibWpQXAx7hr/an9y+UxcL3bUZLzLnwlnoUpG4Fr3y5hOxcpoGNt07Sm3Gg8ddsVF0eYHITmdUbNdlWnd8Av75SutAz7aWEa2asf32aIH45cvRVHz6MEo6xTdtk7OjF4XXYSO7ngHa7Rof7bFCp9HzqHGMqGl7FcMPRPfOlGWHdLXO0REXTcs23Zed7F8X8jPktVvba"),
+         txtTID: encodeURI("NCT01923415;NCT00774852;NCT00035308"),
+         __ASYNCPOST:"true&"
+         }}, function(err,httpResponse,body){
+           $ = cheerio.load(body);
+             console.log(body)
+             result = body
+
+             $(result).find("tbody").children()[2].children[3].children[0].data
+
+             $(result).find("tbody").children().map( (i,v) => {
+
+                    var data = v.children.map( (i,v) => {
+
+                     var d = i.children.map( (i,v) => {
+                       return i.data
+                     })
+
+                     return d[0]
+
+                   })
+
+                   console.log(data)
+                   debugger
+             })
+
+
+
+          })
+
+
+//        ScriptManager1:UpdatePanel1|GVResults
+// //txtTID:NCT01923415; NCT00774852; NCT00035308
+// __EVENTTARGET:GVResults
+// __EVENTARGUMENT:ShowNgrams$0
+
+
   } catch (e) {
     console.log(e);
   }
@@ -117,75 +127,14 @@ main();
 
 app.get('/data', function (req, res) {
   try {
-    // var queryObject = urlDataToObject(req._parsedOriginalUrl.query);
-    //   //  console.log(JSON.stringify(req._parsedOriginalUrl));
-    // var page = queryObject["page"];
-    // //client.itemLookup()
-    // client.itemLookup({
-    //   //searchIndex: 'Electronics',
-    //   ItemId:"B007BYLO4E,B01GO72M9O,B007F9XHAY,B00ODDE33U",
-    //   responseGroup: 'ItemAttributes,Offers,Reviews,SalesRank',
-    //   //ItemPage: page
-    // }).then(function(results){
-    //   console.log(JSON.stringify(results));
-    //   res.send(results);
-    // }).catch(function(err){
-    //   console.log(JSON.stringify(err));
-    // });
-
-    res.send(allProducts);
+    res.send(result);
   } catch (ex) {
     console.log(ex);
     res.send("");
   }
 });
+
 var portUSed = 3020;
 app.listen(portUSed, function () {
-  console.log('AmazonScrapper Running on port ' + portUSed + "" + new Date().toISOString());
+  console.log('App is Running on port ' + portUSed + " " + new Date().toISOString());
 });
-
-var client = amazon.createClient({
-  awsId: "AKIAI7UIBW6PANJASE6A",
-  awsSecret: "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",
-  awsTag: "somethingElse"
-});
-
-// client.itemSearch({
-//   Brand: 'Sony',
-//   searchIndex: 'Electronics',
-//   Keywords: 'dvd player',
-//   responseGroup: 'ItemAttributes,Offers,Images'
-// }).then(function(results){
-//   console.log(JSON.stringify(results));
-// }).catch(function(err){
-//   console.log(JSON.stringify(err));
-// });
-
-function urlDataToObject(query) {
-  var queryObject = {};
-  if (query) {
-    var queryElements = query.split("&"); //This is the GET variable contents. (Probably POST as well).
-    for (var i in queryElements) {
-      var element = queryElements[i].split("=");
-      var key = decodeURIComponent(element[0]);
-
-      key = key.split("[")[0]; // ugly fix. get variables that contain an array are postfixed by "[]". I didn't know this before I made this function.
-
-      if (!queryObject[key]) {
-        queryObject[key] = [];
-      }
-
-      queryObject[key].push(element[1]);
-      //queryObject[element[0]] = element[1];
-    }
-
-    for (var i in queryObject) {
-      if (queryObject[i].length === 1) {
-        var singleVal = queryObject[i][0];
-        queryObject[i] = singleVal;
-      }
-    }
-  }
-  return queryObject;
-}
-//# sourceMappingURL=index.js.map
