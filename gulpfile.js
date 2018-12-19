@@ -1,39 +1,23 @@
 var gulp = require('gulp');
+var watch = require('gulp-watch');
+
 var concat = require('gulp-concat');
 // var uglify = require('gulp-uglify');
 var less = require('gulp-less');
 var babel = require('gulp-babel');
 var sourcemaps = require("gulp-sourcemaps");
 
-gulp.task('babel', function () {
-    gulp.src(['src/**/*.js','src/**/*.jsx'])
-        .pipe(sourcemaps.init())
-        .pipe(babel(
-          {
-            presets: [
-              // 'react',
-              // 'es2015',
-              // 'stage-0'
-            ],
-            plugins: [
-              // http://babeljs.io/docs/plugins/transform-object-rest-spread/
-              // "transform-object-rest-spread",
-
-              // export from ES6 to use ./src/components/core/index.js
-              // "transform-export-extensions",
-
-              // async function foo() { await bar(); }
-              // "transform-async-to-generator",
-              // "transform-regenerator",
-              // "transform-runtime"
-            ]
-          }
-        ))
-        // .pipe(concat('../static/js/app.js'))
-        .pipe(sourcemaps.write("."))
+gulp.task('babel', () =>
+	gulp.src(['src/**/*.js','src/**/*.jsx'])
+		.pipe(babel({
+			presets: ['@babel/env'],
+      plugins: ['@babel/transform-runtime']
+		}))
+		// .pipe(gulp.dest('dist'))
+    .pipe(sourcemaps.write("."))
         //.pipe(uglify())
-        .pipe(gulp.dest('./'));
-});
+    .pipe(gulp.dest('./'))
+);
 
 gulp.task('less', function () {
  return gulp.src('./src-style/**/*.less')
@@ -55,20 +39,12 @@ var watchTaskList = [
   'jsonData'
 ];
 
-gulp.task('watch',
-          // Jobs before watch
-          watchTaskList,
-          function () {
-            gulp.watch(
-              [
-                'src/**/*.js',
-                'src/**/*.jsx',
-                'src-style/**/*.less',
-                'src/**/*.json'
-              ],
-              // watch jobs
-              watchTaskList
-            );
-            // gulp.watch( 'src/**/*.scss', ['css'] );
-          }
-);
+gulp.task('watch', () => {
+	return watch('src/**/*.js', { ignoreInitial: false })
+	.pipe(babel({
+		presets: ['@babel/env'],
+		plugins: ['@babel/transform-runtime']
+	}))
+	.pipe(sourcemaps.write("."))
+	.pipe(gulp.dest('./'))
+} );
